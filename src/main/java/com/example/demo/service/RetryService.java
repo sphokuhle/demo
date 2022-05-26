@@ -11,7 +11,7 @@ import java.util.Date;
 public class RetryService {
 
     public String testAfterRestart() {
-        String result = "Retry worked at {} \nYeah!!!";
+        String result = "Retry worked at {} Yeah!!!";
         log.info(result, new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new Date()));
         return result;
     }

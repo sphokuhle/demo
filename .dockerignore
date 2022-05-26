@@ -1,0 +1,8 @@
+Dockerfile
+.gitignore
+mvnw
+mvnw.cmd
+.idea
+db/
+target/
+configuration/

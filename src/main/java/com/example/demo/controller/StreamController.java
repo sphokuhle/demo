@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.dto.StreamDto;
 import com.example.demo.entity.Stream;
 import com.example.demo.repository.StreamRepository;
+import com.example.demo.service.KeycloakKeyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,9 @@ public class StreamController {
 
     @Autowired
     StreamRepository streamRepository;
+
+    @Autowired
+    KeycloakKeyService keycloakKeyService;
 
     @GetMapping("all")
     public Iterable<Stream> getStreams(){
@@ -42,6 +46,11 @@ public class StreamController {
     public List<Object[]> getCertainColumns() {
 
         return streamRepository.getNamesAndCodes();
+    }
+
+    @GetMapping
+    public Map<String, String> getCertificates() {
+        return keycloakKeyService.getPublicKeys();
     }
 
     @GetMapping("testNativeMap")

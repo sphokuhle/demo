@@ -1,0 +1,363 @@
+#KEYCLOAK DATABASE
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloakdb-service
+spec:
+  selector:
+    app: database-keycloak
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloakdb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database-keycloak
+  template:
+    metadata:
+      labels:
+        app: database-keycloak
+    spec:
+      containers:
+        - name: keycloakdb
+          image: postgres:latest
+          env:
+            - name: POSTGRES_DB
+              value: 'keycloakdb'
+            - name: POSTGRES_USER
+              value: 'admin'
+            - name: POSTGRES_PASSWORD
+              value: 'admin'
+---
+#KEYCLOAK APP
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-service
+spec:
+  selector:
+    app: keycloak
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8180
+      targetPort: 8180
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: jboss/keycloak:13.0.1
+          env:
+            - name: DB_VENDOR
+              value: 'postgres'
+            - name: DB_ADDR
+              value: 'keycloakdb'
+            - name: DB_DATABASE
+              value: 'keycloakdb'
+            - name: DB_USER
+              value: 'admin'
+            - name: DB_PASSWORD
+              value: 'admin'
+            - name: KEYCLOAK_ADMIN
+              value: 'sphokuhle'
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: 'sphokuhle'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demodb-service
+spec:
+  selector:
+    app: demodb
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demodb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demodb
+  template:
+    metadata:
+      labels:
+        app: demodb
+    spec:
+      containers:
+        - name: demodb
+          image: postgres:latest
+          env:
+            - name: POSTGRES_PASSWORD
+              value: 'posPassword1'
+            - name: POSTGRES_USER
+              value: 'postgres'
+            - name: POSTGRES_DB
+              value: 'demodb'
+---
+#Config MAP
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config-map
+data:
+  spring.datasource.url: "jdbc:postgresql://demodb-service.default:5432/demodb"
+  spring.datasource.driver-class-name: "org.postgresql.Driver"
+  spring.jpa.hibernate.ddl-auto: "none"
+  spring.datasource.initialization-mode: "always"
+  spring.datasource.username: "postgres"
+  spring.datasource.password: "posPassword1"
+  spring.jpa.properties.hibernate.dialect: "org.hibernate.dialect.PostgreSQLDialect"
+  spring.liquibase.change-log: "classpath:/db/changelog/changelog-master.xml"
+  logging.level.liquibase: "INFO"
+  server.servlet.context-path: "/Student_Portal/api/v1"
+  spring.mail.host: "localhost"
+  spring.mail.username: "Administrator"
+  spring.mail.password: "mailPassword1"
+  spring.mail.port: "25"
+  spring.mail.debug: "true"
+  spring.mail.properties.mail.transport.protocol: "smtp"
+  spring.mail.properties.mail.smtp.auth: "true"
+  spring.mail.properties.mail.smtp.starttls.enable: "true"
+  spring.mail.properties.mail.smtp.starttls.required: "true"
+  spring.security.oauth2.resourceserver.jwt.issuer-uri: "http://keycloak-service.default:8180/auth/realms/demo"
+  spring.security.oauth2.resourceserver.jwt.jwk-set-uri: "http://keycloak-service.default:8180/auth/realms/demo/protocol/openid-connect/certs"
+  spring.security.filter.order: "5"
+  app.security.jwtIssuer: "http://keycloak-service.default:8180/auth/realms/demo"
+  app.security.jwtPublicKey: "MIIClzCCAX8CBgF/c5KahDANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARkZW1vMB4XDTIyMDMxMDExMjI0MloXDTMyMDMxMDExMjQyMlowDzENMAsGA1UEAwwEZGVtbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOhRgubl1F4gLb1h149F8A1rBR6/yT+/zibrPq2oGLlPPNXhnQ6/KJYK5yaWOz8UvBU8HbcH1FIGUHbIGyGQ0dJvzK+rz7oW5oa10FputxnDKk49iBw+SMXyBQQT+G8ID4jirUtm9+UbmPPJKWqWpsv30SGPiiKXyrK7iEmqt/OM6m1x4jygBlHzuU84dhCvkn5Str+WVt7mu6fW1FpZ2kmtAfEpCndZUUGobg6TduvVyHNnB09FGOKYcPq2AiBOXgsGU9WzB1nSLjp/XI5yCHXNwuUVmSwCO243boILNjxJHSOtJPeVGmwzBEYHml/k9YCdRJ0B/nUMyoHIkpqRs2ECAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAdhL9U64mn1HFhqe0czGzUNcusldRlIVQfAHJQHCE9AENIKrWq6x+NtIhYaUOOXIDvxq2Y6CNwL46Qm/aFkQut7CBZmJEAU3GyoR6D9b+JVxghCENXVBKWvEGdvWKwTcj0NeOs9Sp96eDsYQm2U4iLjdSElu+p5Pvim+HTJj07ApYZgMMnLBu9yFa29LyP42M2jMtF0PceFS9eSLZ4AOY5hgCfEtxS+6MkS9FBe4wts3miDQoVrSu6+BT49NGllCKLEsYOjl50blNxVcMmj3SJnsbYmYdRCorbnozINH1/jWCKSr/i5G5P8IN1I5gpqjefZjgIiRcXxTFeg5ZWrFeuw=="
+  keycloak.auth-server-url: "http://keycloak-service.default:8180/auth"
+  keycloak.realm: "demo"
+  keycloak.resource: "demo-app"
+  keycloak.public-client: "true"
+  keycloak.principal-attribute: "preferred_username"
+  keycloak.ssl-required: "external"
+  keycloak.credentials.secret: "plrEBJGHZQVM8w6prendYZ6VSEPC0BopwEBAoy_t0Mw"
+  keycloak.use-resource-role-mappings: "true"
+  keycloak.bearer-only: "true"
+  app.sso.auth-url: "http://keycloak-service.default:8180/auth/realms/demo/protocol/openid-connect/token"
+  server.port: "8443"
+---
+#JAVA BACKEND
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-service
+spec:
+  selector:
+    app: demo
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8443
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: demo-backend
+          image: sphokuhle/demo:latest
+          env:
+            - name: DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.datasource.url
+            - name: DATASOURCE_DRIVER_CLASS_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.datasource.driver-class-name
+            - name: HIBERNATE_DLL_AUTO
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.jpa.hibernate.ddl-auto
+            - name: DATASOURCE_INITIALISATION_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.datasource.initialization-mode
+            - name: DATASOURCE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.datasource.username
+            - name: DATASOURCE_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.datasource.password
+            - name: HIBERNATE_DIALECT
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.jpa.properties.hibernate.dialect
+            - name: LIQUIBASE_CHANGELOG
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.liquibase.change-log
+            - name: CONTEXT_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: server.servlet.context-path
+            - name: MAIL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.host
+            - name: MAIL_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.username
+            - name: MAIL_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.password
+            - name: MAIL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.port
+            - name: MAIL_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.debug
+            - name: MAIL_TRANSPORT_PROTOCOL
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.properties.mail.transport.protocol
+            - name: MAIL_SMTP_AUTH
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.properties.mail.smtp.auth
+            - name: MAIL_SMTP_STARTTLS_ENABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.properties.mail.smtp.starttls.enable
+            - name: MAIL_SMTP_STARTTLS_REQUIRED
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.mail.properties.mail.smtp.starttls.required
+            - name: JWT_ISSUER_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.security.oauth2.resourceserver.jwt.issuer-uri
+            - name: JWT_JWK_SET_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: spring.security.oauth2.resourceserver.jwt.jwk-set-uri
+            - name: SECURITY_JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: app.security.jwtIssuer
+            - name: SECURITY_JWT_PUBLIC_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: app.security.jwtPublicKey
+            - name: KEYCLOAK_AUTH_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.auth-server-url
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.realm
+            - name: KEYCLOAK_RESOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.resource
+            - name: KEYCLOAK_PUBLIC_CLIENT
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.public-client
+            - name: KEYCLOAK_PRINCIPAL_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.principal-attribute
+            - name: KEYCLOAK_SSL_REQUIRED
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.ssl-required
+            - name: KEYCLOAK_CREDENTIALS_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.credentials.secret
+            - name: KEYCLOAK_USE_RESOURCE_ROLE_MAPPINGS
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.use-resource-role-mappings
+            - name: KEYCLOAK_BEARER_ONLY
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: keycloak.bearer-only
+            - name: SSO_AUTH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: app.sso.auth-url
+            - name: SERVER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: "demo-config-map"
+                  key: server.port

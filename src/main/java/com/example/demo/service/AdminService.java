@@ -39,6 +39,9 @@ public class AdminService {
     private String SECRET;
 
     @Autowired
+    private KeycloakKeyService keycloakKeyService;
+
+    @Autowired
     UserRepository userRepository;
 
     @Autowired
@@ -61,7 +64,7 @@ public class AdminService {
                 .realm(REALM)
                 .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
                 .clientId(CLIENT_ID)
-                .clientSecret(SECRET)
+                .clientSecret(keycloakKeyService.getPublicKeys().get("secret"))
                 .authorization(token)
                 .build();
 

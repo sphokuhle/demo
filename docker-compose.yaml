@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  keycloakdb:
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloakdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+
+  keycloak:
+    depends_on:
+      - keycloakdb
+    container_name: keycloak
+    environment:
+      DB_VENDOR: postgres
+      DB_ADDR: keycloakdb
+      DB_DATABASE: keycloakdb
+      DB_USER: admin
+      DB_PASSWORD: admin
+      KEYCLOAK_ADMIN: sphokuhle
+      KEYCLOAK_ADMIN_PASSWORD: sphokuhle
+
+    image: jboss/keycloak:13.0.1
+    ports:
+      - "8180:8080"
+    restart: unless-stopped
+  demodb:
+    container_name: demodb
+    image: postgres:latest
+    environment:
+      - POSTGRES_PASSWORD=posPassword1
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=demodb
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - demodb:/var/lib/postgresql/data
+  demo_service:
+    container_name: demo_service
+    image: sphokuhle/demo
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - demodb
+    ports:
+      - "8443:8443"
+    restart: always
+
+volumes:
+  demodb:

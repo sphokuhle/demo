@@ -100,6 +100,16 @@
 			<groupId>com.querydsl</groupId>
 			<artifactId>querydsl-jpa</artifactId>
 		</dependency>
+		<!--for keeping track of database schema script revisions.
+		It works with a variety of database types and accepts a variety of file formats for defining the database structure.
+		-->
+
+		<dependency>
+			<groupId>org.liquibase</groupId>
+			<artifactId>liquibase-core</artifactId>
+			<version>4.5.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -125,7 +135,7 @@
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
-            <version>1.1.0.Final-redhat-1</version>
+            <version>2.0.1.Final</version>
         </dependency>
 		<dependency>
 			<groupId>org.springframework.security</groupId>
@@ -154,6 +164,19 @@
 					<testFailureIgnore>true</testFailureIgnore>
 				</configuration>
 			</plugin>
+
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<configuration>
+							<mainClass>com.example.demo.DemoApplication</mainClass>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<!-- Plugin that generates QTypes for Query Dsl -->
 			<plugin>
 				<groupId>com.mysema.maven</groupId>

@@ -3,7 +3,9 @@ package com.example.demo.util;
 import com.example.demo.dto.authorization.AuthRequestDto;
 import com.example.demo.converter.ObjectToUrlEncodedConverter;
 import com.example.demo.dto.authorization.KeycloakCredentialsDto;
+import com.example.demo.service.KeycloakKeyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -14,6 +16,9 @@ import java.util.*;
 @Component
 public class LoginUtil {
 
+    @Autowired
+    private KeycloakKeyService keycloakKeyService;
+
     @Value("${app.sso.auth-url}")
     private String KEYCLOAK_URL;
 
@@ -23,8 +28,8 @@ public class LoginUtil {
     @Value("${keycloak.resource}")
     private String CLIENT_ID;
 
-    @Value("${keycloak.credentials.secret}")
-    private String SECRET;
+//    @Value("${keycloak.credentials.secret}")
+//    private String SECRET;
 
     private final static String GRANT_TYPE = "password";
 
@@ -35,7 +40,7 @@ public class LoginUtil {
         keycloakCredentialsDto.setPassword(authRequest.getPassword());
         keycloakCredentialsDto.setClientId(CLIENT_ID);
         keycloakCredentialsDto.setGrantType(GRANT_TYPE);
-        keycloakCredentialsDto.setClientSecret(SECRET);
+        keycloakCredentialsDto.setClientSecret(keycloakKeyService.getPublicKeys().get("secret"));
 
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getMessageConverters().add(new ObjectToUrlEncodedConverter(new ObjectMapper()));
