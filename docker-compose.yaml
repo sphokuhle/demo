@@ -21,11 +21,11 @@ services:
       DB_PASSWORD: admin
       KEYCLOAK_ADMIN: sphokuhle
       KEYCLOAK_ADMIN_PASSWORD: sphokuhle
-
     image: jboss/keycloak:13.0.1
     ports:
       - "8180:8080"
     restart: unless-stopped
+
   demodb:
     container_name: demodb
     image: postgres:latest
